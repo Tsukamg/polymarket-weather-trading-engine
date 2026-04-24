@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Weather Bot — Kelly Simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root{--bg:#000;--bg2:#020c02;--border:#0a2a0a;--green:#00ff41;--green-dim:rgba(0,255,65,.08);--green-glow:rgba(0,255,65,.4);--red:#ff2244;--red-dim:rgba(255,34,68,.08);--yellow:#ffcc00;--text:#88ff88;--text2:#2a5a2a;--mono:'Share Tech Mono',monospace;--display:'Orbitron',sans-serif;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,65,.015) 2px,rgba(0,255,65,.015) 4px);pointer-events:none;z-index:999;}
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,255,65,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,65,.03) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.wrap{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:24px 28px;}
+.header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;padding-bottom:18px;border-bottom:1px solid var(--border);position:relative;}
+.header::after{content:'';position:absolute;bottom:-1px;left:0;width:35%;height:1px;background:var(--green);box-shadow:0 0 12px var(--green-glow);}
+.brand-title{font-family:var(--display);font-size:24px;font-weight:900;color:var(--green);letter-spacing:3px;text-shadow:0 0 20px var(--green-glow);line-height:1;}
+.brand-sub{font-size:10px;color:var(--text2);letter-spacing:2px;margin-top:4px;}
+.header-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;}
+.live-pill{display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:1px;color:var(--green);}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 1.5s infinite;}
+.dot.gray{background:var(--text2);box-shadow:none;animation:none;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.2;}}
+.ts{font-size:10px;color:var(--text2);}
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:20px;}
+.stat{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:13px 15px;position:relative;overflow:hidden;}
+.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,var(--green),transparent);opacity:.5;}
+.stat-label{font-size:9px;color:var(--text2);letter-spacing:2px;text-transform:uppercase;margin-bottom:5px;}
+.stat-val{font-family:var(--display);font-size:20px;font-weight:700;color:var(--green);line-height:1;text-shadow:0 0 10px rgba(0,255,65,.3);transition:all .3s;}
+.stat-val.red{color:var(--red);text-shadow:0 0 10px rgba(255,34,68,.3);}
+.stat-val.yellow{color:var(--yellow);}
+.stat-sub{font-size:9px;color:var(--text2);margin-top:3px;}
+.layout{display:grid;grid-template-columns:1fr 340px;gap:14px;margin-bottom:14px;}
+.chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:4px;overflow:hidden;position:relative;}
+.chart-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--green),transparent);opacity:.4;}
+.card-head{padding:10px 15px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.card-title{font-size:10px;color:var(--text2);letter-spacing:2px;text-transform:uppercase;}
+.card-badge{font-size:9px;padding:2px 8px;border-radius:2px;background:var(--green-dim);color:var(--green);border:1px solid rgba(0,255,65,.2);letter-spacing:1px;}
+.chart-body{padding:16px;position:relative;}
+.chart-wrap{height:220px;position:relative;}
+.deltas{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+.delta{position:absolute;font-size:11px;font-weight:600;padding:2px 7px;border-radius:3px;animation:floatUp 2.5s ease forwards;white-space:nowrap;}
+.delta.pos{color:var(--green);background:rgba(0,255,65,.08);border:1px solid rgba(0,255,65,.2);text-shadow:0 0 6px var(--green);}
+.delta.neg{color:var(--red);background:var(--red-dim);border:1px solid rgba(255,34,68,.2);}
+@keyframes floatUp{0%{opacity:0;transform:translateY(0);}15%{opacity:1;}80%{opacity:1;}100%{opacity:0;transform:translateY(-45px);}}
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:4px;overflow:hidden;position:relative;}
+.panel::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,var(--green),transparent);opacity:.4;}
+.scroll{max-height:290px;overflow-y:auto;}
+.scroll::-webkit-scrollbar{width:2px;}
+.scroll::-webkit-scrollbar-thumb{background:var(--border);}
+.bot-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.trade-item{padding:9px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;animation:slideIn .3s ease;}
+.trade-item:last-child{border-bottom:none;}
+@keyframes slideIn{from{opacity:0;transform:translateX(-6px);}to{opacity:1;transform:none;}}
+.t-time{font-size:9px;color:var(--text2);flex-shrink:0;width:60px;}
+.t-badge{font-size:9px;padding:2px 7px;border-radius:2px;flex-shrink:0;letter-spacing:1px;border:1px solid;}
+.t-badge.buy{color:var(--green);border-color:rgba(0,255,65,.25);background:var(--green-dim);}
+.t-badge.win{color:#44ffaa;border-color:rgba(68,255,170,.25);background:rgba(68,255,170,.06);}
+.t-badge.loss{color:var(--red);border-color:rgba(255,34,68,.25);background:var(--red-dim);}
+.t-info{flex:1;min-width:0;}
+.t-q{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);margin-bottom:2px;}
+.t-meta{font-size:9px;color:var(--text2);}
+.t-right{text-align:right;flex-shrink:0;}
+.t-amount{font-size:11px;font-weight:600;}
+.t-amount.pos{color:var(--green);}
+.t-amount.neg{color:var(--red);}
+.pos-item{padding:10px 14px;border-bottom:1px solid var(--border);animation:slideIn .35s ease;}
+.pos-item:last-child{border-bottom:none;}
+.pos-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;}
+.pos-q{font-size:11px;color:var(--text);flex:1;margin-right:10px;line-height:1.3;}
+.pos-pnl{font-size:12px;font-weight:700;flex-shrink:0;}
+.pos-pnl.pos{color:var(--green);}
+.pos-pnl.neg{color:var(--red);}
+.pos-bar{height:2px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:4px;}
+.pos-fill{height:100%;background:var(--green);border-radius:2px;transition:width .8s;box-shadow:0 0 4px var(--green);}
+.pos-meta{display:flex;gap:12px;font-size:9px;color:var(--text2);}
+.pos-meta span{color:var(--yellow);}
+.empty{padding:28px;text-align:center;color:var(--text2);font-size:10px;letter-spacing:2px;}
+.no-server{padding:20px 24px;margin:0;background:rgba(255,204,0,.04);border:1px solid rgba(255,204,0,.15);border-radius:4px;font-size:11px;color:var(--yellow);line-height:1.7;}
+.no-server code{background:rgba(0,255,65,.06);border:1px solid rgba(0,255,65,.15);padding:1px 6px;border-radius:2px;color:var(--green);font-family:var(--mono);}
+.footer{margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.footer-text{font-size:9px;color:var(--text2);letter-spacing:1px;}
+.sim-badge{font-size:9px;padding:2px 8px;border-radius:2px;background:rgba(255,204,0,.06);color:var(--yellow);border:1px solid rgba(255,204,0,.2);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="header">
+  <div>
+    <div class="brand-title">WEATHER BOT — KELLY SIM</div>
+    <div class="brand-sub">Polymarket · Open-Meteo · Kelly Criterion · EV Analysis</div>
+  </div>
+  <div class="header-right">
+    <div class="live-pill"><div class="dot" id="status-dot"></div><span id="status-text">CONNECTING...</span></div>
+    <div class="ts" id="ts">—</div>
+  </div>
+</div>
+
+<div id="no-server-msg" class="no-server" style="display:none;margin-bottom:20px;">
+  ⚠️ &nbsp;Dashboard needs a local server to read <code>simulation.json</code>.<br>
+  Run this command in your <code>weatherbot</code> folder, then refresh:<br><br>
+  <code>python -m http.server 8000</code><br><br>
+  Then open: <code>http://localhost:8000/sim_dashboard.html</code>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="stat-label">Balance</div><div class="stat-val" id="s-bal">—</div><div class="stat-sub">virtual USDC</div></div>
+  <div class="stat"><div class="stat-label">Total PnL</div><div class="stat-val" id="s-pnl">—</div><div class="stat-sub" id="s-pct">vs $1,000 start</div></div>
+  <div class="stat"><div class="stat-label">Open Positions</div><div class="stat-val" id="s-open">—</div><div class="stat-sub">active trades</div></div>
+  <div class="stat"><div class="stat-label">Win Rate</div><div class="stat-val yellow" id="s-wr">—</div><div class="stat-sub" id="s-wl">0W / 0L</div></div>
+  <div class="stat"><div class="stat-label">Total Trades</div><div class="stat-val" id="s-total">—</div><div class="stat-sub">all time</div></div>
+  <div class="stat"><div class="stat-label">Peak Balance</div><div class="stat-val" id="s-peak">—</div><div class="stat-sub">all time high</div></div>
+</div>
+
+<div class="layout">
+  <div class="chart-card">
+    <div class="card-head"><span class="card-title">Balance History</span><span class="card-badge">KELLY-SIZED POSITIONS</span></div>
+    <div class="chart-body">
+      <div class="chart-wrap">
+        <canvas id="chart"></canvas>
+        <div class="deltas" id="deltas"></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="card-head"><span class="card-title">Open Positions</span><span class="card-badge" id="pos-badge">0 ACTIVE</span></div>
+    <div class="scroll" id="pos-list"><div class="empty">Waiting for bot data...</div></div>
+  </div>
+</div>
+
+<div class="bot-grid">
+  <div class="panel">
+    <div class="card-head"><span class="card-title">Trade History</span><span class="card-badge">FROM simulation.json</span></div>
+    <div class="scroll" id="trade-list"><div class="empty">No trades yet — run: python weather_bot_v2.py --live</div></div>
+  </div>
+  <div class="panel">
+    <div class="card-head"><span class="card-title">Kelly + EV Log</span><span class="card-badge">ENTRIES ONLY</span></div>
+    <div class="scroll" id="ev-log"><div class="empty">No entries yet</div></div>
+  </div>
+</div>
+
+<div class="footer">
+  <div class="footer-text">Weather Bot v2 · Reads from simulation.json · Refreshes every 10s</div>
+  <div class="sim-badge">⚡ $1,000 SIMULATION</div>
+</div>
+</div>
+
+<script>
+const fmt2=v=>(v>=0?'+':'')+v.toFixed(2);
+const fmtUSD=v=>'$'+Math.abs(v).toFixed(2);
+const now=()=>new Date().toLocaleTimeString('en-US',{hour12:false});
+const rand=(a,b)=>Math.random()*(b-a)+a;
+
+let prevBal=null, chart=null, balHistory=[], timeLabels=[];
+
+// Init chart
+chart=new Chart(document.getElementById('chart'),{
+  type:'line',
+  data:{labels:[],datasets:[{data:[],borderColor:'#00ff41',backgroundColor:'rgba(0,255,65,.06)',fill:true,tension:.45,pointRadius:0,borderWidth:2}]},
+  options:{responsive:true,maintainAspectRatio:false,animation:{duration:400},plugins:{legend:{display:false},tooltip:{backgroundColor:'#020c02',borderColor:'#0a2a0a',borderWidth:1,callbacks:{label:c=>'$'+c.parsed.y.toFixed(2)}}},scales:{x:{ticks:{color:'#1a3a1a',font:{family:'Share Tech Mono',size:8},maxTicksLimit:8},grid:{color:'#050f05'}},y:{ticks:{color:'#2a5a2a',font:{family:'Share Tech Mono',size:9}},grid:{color:'#050f05'}}}}
+});
+
+function spawnDelta(v){
+  const l=document.getElementById('deltas');
+  const e=document.createElement('div');
+  e.className='delta '+(v>=0?'pos':'neg');
+  e.textContent=(v>=0?'+ $':'- $')+Math.abs(v).toFixed(2);
+  e.style.left=rand(30,l.offsetWidth-120)+'px';
+  e.style.top=rand(l.offsetHeight*.2,l.offsetHeight*.7)+'px';
+  l.appendChild(e);
+  setTimeout(()=>e.remove(),2500);
+}
+
+function renderPositions(positions){
+  const el=document.getElementById('pos-list');
+  document.getElementById('pos-badge').textContent=Object.keys(positions).length+' ACTIVE';
+  if(!Object.keys(positions).length){el.innerHTML='<div class="empty">No open positions</div>';return;}
+  el.innerHTML=Object.entries(positions).map(([id,p])=>{
+    const pnl=p.pnl||0;
+    const pct=(p.current_price||p.entry_price)*100;
+    return`<div class="pos-item">
+      <div class="pos-top">
+        <div class="pos-q">${(p.question||'').substr(0,58)}...</div>
+        <div class="pos-pnl ${pnl>=0?'pos':'neg'}">${pnl>=0?'+':'-'}$${Math.abs(pnl).toFixed(2)}</div>
+      </div>
+      <div class="pos-bar"><div class="pos-fill" style="width:${Math.min(100,pct)}%"></div></div>
+      <div class="pos-meta">
+        <div>${p.location||''}</div>
+        <div>Kelly: <span>${((p.kelly_pct||0)*100).toFixed(1)}%</span></div>
+        <div>EV: <span>${fmt2(p.ev||0)}</span></div>
+        <div>$${(p.cost||0).toFixed(2)} in</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderTrades(trades){
+  const el=document.getElementById('trade-list');
+  if(!trades||!trades.length){el.innerHTML='<div class="empty">No trades yet — run: python weather_bot_v2.py --live</div>';return;}
+  const recent=[...trades].reverse().slice(0,15);
+  el.innerHTML=recent.map(t=>{
+    const isEntry=t.type==='entry';
+    const isWin=t.type==='exit'&&(t.pnl||0)>0;
+    const cls=isEntry?'buy':isWin?'win':'loss';
+    const label=isEntry?'BUY':isWin?'WIN':'LOSS';
+    const amtStr=isEntry?`-$${(t.cost||0).toFixed(2)}`:(t.pnl||0)>=0?`+$${(t.pnl||0).toFixed(2)}`:`-$${Math.abs(t.pnl||0).toFixed(2)}`;
+    const amtCls=isEntry?'neg':(t.pnl||0)>=0?'pos':'neg';
+    const time=(t.opened_at||t.closed_at||'').substr(11,5)||'—';
+    return`<div class="trade-item">
+      <div class="t-time">${time}</div>
+      <span class="t-badge ${cls}">${label}</span>
+      <div class="t-info">
+        <div class="t-q">${(t.question||'').substr(0,45)}...</div>
+        <div class="t-meta">Kelly ${((t.kelly_pct||0)*100).toFixed(1)}% · EV ${fmt2(t.ev||0)}</div>
+      </div>
+      <div class="t-right"><div class="t-amount ${amtCls}">${amtStr}</div></div>
+    </div>`;
+  }).join('');
+}
+
+function renderEvLog(trades){
+  const el=document.getElementById('ev-log');
+  const entries=(trades||[]).filter(t=>t.type==='entry').reverse().slice(0,15);
+  if(!entries.length){el.innerHTML='<div class="empty">No entries yet</div>';return;}
+  el.innerHTML=entries.map(t=>{
+    const evCol=(t.ev||0)>0?'#00ff41':'#ff2244';
+    const time=(t.opened_at||'').substr(11,5)||'—';
+    return`<div style="padding:7px 14px;border-bottom:1px solid #0a2a0a;font-size:9px;">
+      <div style="color:#2a5a2a">${time} · ${t.location||''} · ${t.date||''}</div>
+      <div style="color:#88ff88;margin-top:2px">Entry: $${(t.entry_price||0).toFixed(3)} · Our prob: ${((t.our_prob||0)*100).toFixed(0)}%</div>
+      <div style="margin-top:2px">EV: <span style="color:${evCol}">${fmt2(t.ev||0)}</span> per $1 &nbsp;|&nbsp; Kelly: <span style="color:#ffcc00">${((t.kelly_pct||0)*100).toFixed(1)}%</span> &nbsp;|&nbsp; Size: <span style="color:#00ff41">$${(t.cost||0).toFixed(2)}</span></div>
+    </div>`;
+  }).join('');
+}
+
+async function loadData(){
+  try {
+    const r=await fetch('simulation.json?t='+Date.now());
+    if(!r.ok)throw new Error('not found');
+
+    const sim=await r.json();
+    document.getElementById('no-server-msg').style.display='none';
+    document.getElementById('status-dot').className='dot';
+    document.getElementById('status-text').textContent='LIVE';
+
+    const bal=sim.balance||1000;
+    const start=sim.starting_balance||1000;
+    const wins=sim.wins||0;
+    const losses=sim.losses||0;
+    const totalTrades=sim.total_trades||0;
+    const positions=sim.positions||{};
+    const trades=sim.trades||[];
+    const peak=sim.peak_balance||bal;
+    const openValue = Object.values(positions).reduce((s,p) => s + (p.cost||0) + (p.pnl||0), 0);
+    const total = bal + openValue;
+    const pnl = total - start;
+    const pct=pnl/start*100;
+
+    // Stats
+    document.getElementById('ts').textContent='Updated: '+now();
+    document.getElementById('s-bal').textContent='$'+total.toFixed(2);
+    const pnlEl=document.getElementById('s-pnl');
+    pnlEl.textContent=(pnl>=0?'+':'')+' $'+Math.abs(pnl).toFixed(2);
+    pnlEl.className='stat-val'+(pnl<0?' red':'');
+    document.getElementById('s-pct').textContent=(pct>=0?'+':'')+pct.toFixed(1)+'% return';
+    document.getElementById('s-open').textContent=Object.keys(positions).length;
+    const wr=wins+losses>0?(wins/(wins+losses)*100).toFixed(0)+'%':'—';
+    document.getElementById('s-wr').textContent=wr;
+    document.getElementById('s-wl').textContent=wins+'W / '+losses+'L';
+    document.getElementById('s-total').textContent=totalTrades;
+    document.getElementById('s-peak').textContent='$'+peak.toFixed(2);
+
+    // Chart
+    if(prevBal!==null&&Math.abs(bal-prevBal)>0.1)spawnDelta(bal-prevBal);
+    prevBal=bal;
+    balHistory.push(parseFloat(bal.toFixed(2)));
+    timeLabels.push(now());
+    if(balHistory.length>60){balHistory.shift();timeLabels.shift();}
+    chart.data.labels=[...timeLabels];
+    chart.data.datasets[0].data=[...balHistory];
+    chart.update();
+
+    renderPositions(positions);
+    renderTrades(trades);
+    renderEvLog(trades);
+
+  } catch(e) {
+    document.getElementById('status-dot').className='dot gray';
+    document.getElementById('status-text').textContent='WAITING FOR BOT';
+    document.getElementById('ts').textContent='No simulation.json found';
+    // Show instructions if running from file://
+    if(location.protocol==='file:'){
+      document.getElementById('no-server-msg').style.display='block';
+    }
+  }
+}
+
+loadData();
+setInterval(loadData, 10000);
+</script>
+</body>
+</html>
