@@ -1,3 +1,7 @@
+
+
+https://github.com/user-attachments/assets/79ba71a2-b2d9-48b5-91bb-034b79ab4d1b
+
 # 🌤 WeatherBet — Polymarket Weather Trading Bot
 
 This is **TypeScript on Node.js**, which means `npm`, `tsc`, and the sweet sound of `fetch()` errors at 3 a.m. It is **not** a `pip install feelings` project. If your README-fresh eyes were looking for `python weatherbet.py`, that timeline branched; the future is `npm start -- run`.
