@@ -1,49 +1,43 @@
-# 🌤 WeatherBet — Polymarket Weather Trading Bot
+# WeatherBet — Polymarket Weather Trading Bot
 
-Automated weather market trading bot for Polymarket. Finds mispriced temperature outcomes using real forecast data from multiple sources across 20 cities worldwide.
+This is **TypeScript on Node.js**, which means `npm`, `tsc`, and the sweet sound of `fetch()` errors at 3 a.m. It is **not** a `pip install feelings` project. If your README-fresh eyes were looking for `python weatherbet.py`, that timeline branched; the future is `npm start -- run`.
 
-TypeScript on Node.js (global `fetch`). Optional **`@polymarket/clob-client`** when `WEATHERBOT_CLOB_LIVE=1`.
-
----
-
-## Versions
-
-### Legacy `bot_v1.py` / `bot_v2.py`
-Removed from this repo; behavior of the **full bot** lives in `src/` (ported from `bot_v2.py`).
-
-### Full bot (`src/`) — current
-Everything in v1, plus:
-- **20 cities** across 4 continents (US, Europe, Asia, South America, Oceania)
-- **3 forecast sources** — ECMWF (global), HRRR/GFS (US, hourly), METAR (real-time observations)
-- **Expected Value** — skips trades where the math doesn't work
-- **Kelly Criterion** — sizes positions based on edge strength
-- **Stop-loss + trailing stop** — 20% stop, moves to breakeven at +20%
-- **Slippage filter** — skips markets with spread > $0.03
-- **Self-calibration** — learns forecast accuracy per city over time
-- **Full data storage** — every forecast snapshot, trade, and resolution saved to JSON
+Automated trading for Polymarket weather markets: hunt mispriced daily temperature buckets using real forecasts across a bunch of cities, then let math (Kelly, EV, stops) argue with strangers on the internet about °F.
 
 ---
 
-## How It Works
+## Does it make money?
 
-Polymarket runs markets like "Will the highest temperature in Chicago be between 46–47°F on March 7?" These markets are often mispriced — the forecast says 78% likely but the market is trading at 8 cents.
+**[▶ Watch the screen recording](./src/rec/2026-05-13_01-03-44%20-%20user.mp4)** — same path as [`MONEY_PROOF_VIDEO_RELATIVE_PATH`](src/rec/video.ts) in `src/rec/video.ts` (rename the clip there + here if you replace the file).
 
-The bot:
-1. Fetches forecasts from ECMWF and HRRR via Open-Meteo (free, no key required)
-2. Gets real-time observations from METAR airport stations
-3. Finds the matching temperature bucket on Polymarket
-4. Calculates Expected Value — only enters if the math is positive
-5. Sizes the position using fractional Kelly Criterion
-6. Monitors stops every 10 minutes, full scan every hour
-7. Auto-resolves markets by querying Polymarket API directly
+*(Local clone: open `src/rec/2026-05-13_01-03-44 - user.mp4` in any player. If it 404s on GitHub, commit the `.mp4` — it’s git-friendly, not a rickroll exemption.)*
 
 ---
 
-## Why Airport Coordinates Matter
+## What you get (the serious bullet list)
 
-Most bots use city center coordinates. That's wrong.
+- **20 cities** across several continents — we went full globetrotter so your VPS gets passport stamps
+- **3 forecast sources** — ECMWF (global), HRRR/GFS (US, hourly), METAR (airport reality checks)
+- **Expected Value gate** — no trade if the spreadsheet blushes
+- **Kelly sizing** — position size scales with edge, not with how loud FinTwit is
+- **Stop-loss + trailing stop** — 20% stop, breakeven trail after +20%
+- **Slippage filter** — skips markets where the spread is doing zumba (over $0.03)
+- **Self-calibration** — remembers which cities lied to it last week
+- **JSON ledger** — every forecast blob, trade, and resolution saved under `data/markets/`
 
-Every Polymarket weather market resolves on a specific airport station. NYC resolves on LaGuardia (KLGA), Dallas on Love Field (KDAL) — not DFW. The difference between city center and airport can be 3–8°F. On markets with 1–2°F buckets, that's the difference between the right trade and a guaranteed loss.
+Optional **`@polymarket/clob-client`** when **`WEATHERBOT_CLOB_LIVE=1`**; otherwise it’s polite paper trading and Gamma quotes.
+
+---
+
+## How it works (short story)
+
+Polymarket asks questions like: *“Will Chicago peak at 46–47°F on March 7?”* Sometimes the crowd prices 8¢ while the atmosphere outside is clearly main‑character energy. The bot pulls model + observation data, maps the right airport station (not “downtown vibes”), finds the bucket, checks EV, sizes with fractional Kelly, then naps for 10 minutes before doing it again.
+
+---
+
+## Why airports, not “city center LatLng”
+
+Polymarket resolves on **airport METAR stations**. NYC is **KLGA**, Dallas is **KDAL** (Love Field, not Dallas Fort Worth’s holiday traffic simulator). A few degrees of latitude snobbery can yeet your 1°F bucket trade into the shadow realm.
 
 | City | Station | Airport |
 |------|---------|---------|
@@ -60,16 +54,17 @@ Every Polymarket weather market resolves on a specific airport station. NYC reso
 ---
 
 ## Installation
-Requires **Node.js 20.10+** ( `@polymarket/clob-client` engine; plus `fetch` / `AbortSignal` timeouts ).
+
+Requires **Node.js 20.10+** (engine for `@polymarket/clob-client`, plus `fetch` / `AbortSignal` timeouts that actually work).
 
 ```bash
-git clone https://github.com/alteregoeth-ai/weatherbot
-cd weatherbot
+git clone https://github.com/Tsukamg/polymarket-weather-trading-engine
+cd polymarket-weather-trading-engine
 npm install
 npm run build
 ```
 
-Configuration is read from the environment. Copy the template and edit:
+Env template:
 
 ```bash
 cp env.example .env
@@ -77,24 +72,25 @@ cp env.example .env
 
 On Windows: `copy env.example .env`
 
-Variables are prefixed with **`WEATHERBOT_`** (see `env.example` for defaults and comments). The app loads `.env` automatically via [`dotenv`](https://github.com/motdotla/dotenv) when any module imports `src/config.ts`.
+Variables use the **`WEATHERBOT_`** prefix (see `env.example`). Anything importing `src/config.ts` loads `.env` via [dotenv](https://github.com/motdotla/dotenv).
 
-Set **`WEATHERBOT_VC_KEY`** for Visual Crossing (actual temperatures after resolution). Get a key at [visualcrossing.com](https://www.visualcrossing.com).
+Set **`WEATHERBOT_VC_KEY`** for Visual Crossing (post-game temps). Free key: [visualcrossing.com](https://www.visualcrossing.com).
 
-**Polymarket CLOB:** set **`WEATHERBOT_CLOB_LIVE=1`** with **`WEATHERBOT_POLY_PRIVATE_KEY`**, **`WEATHERBOT_POLY_PROXY_WALLET`**, and optional CLOB API vars (see `env.example`). Uses **`@polymarket/clob-client`** (`createAndPostMarketOrder`) for buys/sells; Gamma remains the source of market ids and **`clobTokenIds`** YES token. Without `WEATHERBOT_CLOB_LIVE`, behaviour stays **paper-only** (tracked balance + Gamma quotes).
+**Live CLOB:** **`WEATHERBOT_CLOB_LIVE=1`** plus **`WEATHERBOT_POLY_PRIVATE_KEY`**, **`WEATHERBOT_POLY_PROXY_WALLET`**, and optional CLOB API fields from `env.example`. Gamma still feeds market ids and `clobTokenIds`. Without live mode, it’s **paper-only** (sim balance + Gamma prices).
 
 ---
 
 ## Usage
+
 ```bash
-npm start -- run       # start the bot — full scan on interval, monitor between scans
-npm start -- status    # balance and open positions
-npm start -- report    # full breakdown of all resolved markets
+npm start -- run       # bot loop: full scan on interval, monitor between
+npm start -- status    # balance + open positions
+npm start -- report    # resolved markets breakdown
 # or after build:
 node dist/index.js run
 ```
 
-Development without a separate build step:
+Dev without a separate build:
 
 ```bash
 npm run dev -- status
@@ -102,29 +98,23 @@ npm run dev -- status
 
 ---
 
-## Data Storage
+## Data storage
 
-All data is saved to `data/markets/` — one JSON file per market. Each file contains:
-- Hourly forecast snapshots (ECMWF, HRRR, METAR)
-- Market price history
-- Position details (entry, stop, PnL)
-- Final resolution outcome
-
-This data is used for self-calibration — the bot learns forecast accuracy per city over time and adjusts position sizing accordingly.
+Everything lands under `data/markets/` — one JSON file per market: forecast snapshots, prices, positions, resolutions. The bot uses that history to calibrate and occasionally sigh at past you.
 
 ---
 
-## APIs Used
+## APIs
 
 | API | Auth | Purpose |
 |-----|------|---------|
 | Open-Meteo | None | ECMWF + HRRR forecasts |
 | Aviation Weather (METAR) | None | Real-time station observations |
-| Polymarket Gamma | None | Market data |
-| Visual Crossing | Free key | Historical temps for resolution |
+| Polymarket Gamma | None | Market metadata |
+| Visual Crossing | Free key | Historical temps / resolution helpers |
 
 ---
 
 ## Disclaimer
 
-This is not financial advice. Prediction markets carry real risk. Run the simulation thoroughly before committing real capital.
+Not financial advice. Prediction markets can turn money into a learning experience. Paper trade until the math stops giggling.
