@@ -2,7 +2,7 @@
 
 Automated weather market trading bot for Polymarket. Finds mispriced temperature outcomes using real forecast data from multiple sources across 20 cities worldwide.
 
-No SDK. No black box. TypeScript on Node.js (global `fetch`).
+TypeScript on Node.js (global `fetch`). Optional **`@polymarket/clob-client`** when `WEATHERBOT_CLOB_LIVE=1`.
 
 ---
 
@@ -60,7 +60,7 @@ Every Polymarket weather market resolves on a specific airport station. NYC reso
 ---
 
 ## Installation
-Requires **Node.js 18.17+** (for `fetch` and `AbortSignal` timeouts).
+Requires **Node.js 20.10+** ( `@polymarket/clob-client` engine; plus `fetch` / `AbortSignal` timeouts ).
 
 ```bash
 git clone https://github.com/alteregoeth-ai/weatherbot
@@ -81,7 +81,7 @@ Variables are prefixed with **`WEATHERBOT_`** (see `env.example` for defaults an
 
 Set **`WEATHERBOT_VC_KEY`** for Visual Crossing (actual temperatures after resolution). Get a key at [visualcrossing.com](https://www.visualcrossing.com).
 
-**Polymarket wallet / CLOB:** add **`WEATHERBOT_POLY_PRIVATE_KEY`**, **`WEATHERBOT_POLY_PROXY_WALLET`**, and optionally CLOB API vars (see `env.example`). The shipped bot is **paper-only** and does not place orders; those env vars are for when you connect `@polymarket/clob-client` (or similar).
+**Polymarket CLOB:** set **`WEATHERBOT_CLOB_LIVE=1`** with **`WEATHERBOT_POLY_PRIVATE_KEY`**, **`WEATHERBOT_POLY_PROXY_WALLET`**, and optional CLOB API vars (see `env.example`). Uses **`@polymarket/clob-client`** (`createAndPostMarketOrder`) for buys/sells; Gamma remains the source of market ids and **`clobTokenIds`** YES token. Without `WEATHERBOT_CLOB_LIVE`, behaviour stays **paper-only** (tracked balance + Gamma quotes).
 
 ---
 

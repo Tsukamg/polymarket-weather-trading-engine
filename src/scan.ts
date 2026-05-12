@@ -31,6 +31,7 @@ import {
   getPolymarketEvent,
   type GammaEvent,
 } from "./polymarket.js";
+import { clobBuyYesUsd, clobSellYesShares, isLiveClobEnabled, resolveYesTokenId } from "./clob.js";
 import type { ForecastSnap, OutcomeRow, Position } from "./storage.js";
 import {
   getSigma,
@@ -134,6 +135,28 @@ function parseEventOutcomes(event: GammaEvent): OutcomeRow[] {
   return outcomes;
 }
 
+async function liveSellExitOrKeepOpen(pos: Position, label: string): Promise<boolean> {
+  if (!isLiveClobEnabled() || !pos.clob_yes_token_id) return true;
+  try {
+    await clobSellYesShares(pos.clob_yes_token_id, pos.shares);
+    console.log(`  [CLOB] sold YES (${label})`);
+    return true;
+  } catch (e) {
+    console.error(`  [CLOB] sell failed (${label}) — leaving position open in app + on-chain`, e);
+    return false;
+  }
+}
+
+async function liveSellSettlementAttempt(pos: Position, label: string): Promise<void> {
+  if (!isLiveClobEnabled() || !pos.clob_yes_token_id) return;
+  try {
+    await clobSellYesShares(pos.clob_yes_token_id, pos.shares);
+    console.log(`  [CLOB] sold YES (${label})`);
+  } catch (e) {
+    console.warn(`  [CLOB] settlement sell failed (${label}) — you may redeem/close manually`, e);
+  }
+}
+
 export async function scanAndUpdate(): Promise<{ newPos: number; closed: number; resolved: number }> {
   const now = new Date();
   const state = loadState();
@@ -233,6 +256,9 @@ export async function scanAndUpdate(): Promise<{ newPos: number; closed: number;
           }
 
           if (currentPrice <= stop) {
+            const exitLabel = `${loc.name} ${date}`;
+            const soldOk = await liveSellExitOrKeepOpen(pos, exitLabel);
+            if (!soldOk) continue;
             const pnl = Math.round((currentPrice - entry) * pos.shares * 100) / 100;
             balance += pos.cost + pnl;
             pos.closed_at = snap.ts ?? null;
@@ -267,6 +293,9 @@ export async function scanAndUpdate(): Promise<{ newPos: number; closed: number;
             }
           }
           if (currentPrice != null) {
+            const exitLabel = `${loc.name} ${date}`;
+            const soldOk = await liveSellExitOrKeepOpen(pos, `${exitLabel} forecast_changed`);
+            if (!soldOk) continue;
             const pnl = Math.round((currentPrice - pos.entry_price) * pos.shares * 100) / 100;
             balance += pos.cost + pnl;
             mkt.position.closed_at = snap.ts ?? null;
@@ -364,6 +393,25 @@ export async function scanAndUpdate(): Promise<{ newPos: number; closed: number;
           }
 
           if (!skipPosition && bestSignal.entry_price < MAX_PRICE) {
+            let proceed = true;
+            if (isLiveClobEnabled()) {
+              const yesToken = await resolveYesTokenId(bestSignal.market_id);
+              if (!yesToken) {
+                console.log(
+                  `  [CLOB SKIP] ${loc.name} ${date} — no YES token id (check Gamma / clobTokenIds)`,
+                );
+                proceed = false;
+              } else {
+                try {
+                  await clobBuyYesUsd(yesToken, bestSignal.cost);
+                  bestSignal.clob_yes_token_id = yesToken;
+                } catch (e) {
+                  console.error(`  [CLOB BUY FAIL] ${loc.name} ${date}:`, e);
+                  proceed = false;
+                }
+              }
+            }
+            if (!proceed) continue;
             balance -= bestSignal.cost;
             mkt.position = bestSignal;
             state.total_trades += 1;
@@ -398,6 +446,8 @@ export async function scanAndUpdate(): Promise<{ newPos: number; closed: number;
 
     const won = await checkMarketResolved(marketId);
     if (won === null) continue;
+
+    await liveSellSettlementAttempt(pos, `${mkt.city_name} ${mkt.date}`);
 
     const price = pos.entry_price;
     const size = pos.cost;
@@ -495,6 +545,8 @@ export async function monitorPositions(): Promise<number> {
     const stopTriggered = currentPrice <= stop;
 
     if (takeTriggered || stopTriggered) {
+      const soldOk = await liveSellExitOrKeepOpen(pos, `${cityName} ${mkt.date}`);
+      if (!soldOk) continue;
       const pnl = Math.round((currentPrice - entry) * pos.shares * 100) / 100;
       balance += pos.cost + pnl;
       pos.closed_at = new Date().toISOString();
@@ -546,6 +598,7 @@ export async function runLoop(): Promise<void> {
   console.log(`  Balance:    $${BALANCE.toLocaleString("en-US", { maximumFractionDigits: 0 })} | Max bet: $${MAX_BET}`);
   console.log(`  Scan:       ${SCAN_INTERVAL / 60} min | Monitor: ${MONITOR_INTERVAL / 60} min`);
   console.log("  Sources:    ECMWF + HRRR(US) + METAR(D+0)");
+  console.log(`  CLOB:       ${isLiveClobEnabled() ? "LIVE (@polymarket/clob-client)" : "paper (Gamma prices only)"}`);
   console.log(`  Data:       ${path.join(process.cwd(), "data")}`);
   console.log("  Ctrl+C to stop\n");
 

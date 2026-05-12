@@ -25,6 +25,13 @@ function envStr(key: string, defaultValue: string): string {
   return raw != null && raw !== "" ? raw : defaultValue;
 }
 
+function envTruthy(key: string): boolean {
+  const raw = process.env[key];
+  if (raw == null || raw === "") return false;
+  const l = raw.toLowerCase();
+  return raw === "1" || l === "true" || l === "yes";
+}
+
 const P = "WEATHERBOT_" as const;
 
 export const BALANCE = envNum(`${P}BALANCE`, 10000.0);
@@ -40,9 +47,12 @@ export const SCAN_INTERVAL = envNum(`${P}SCAN_INTERVAL`, 3600);
 export const CALIBRATION_MIN = envNum(`${P}CALIBRATION_MIN`, 30);
 export const VC_KEY = envStr(`${P}VC_KEY`, "");
 
+/** Enable real CLOB orders when combined with Polygon keys below (still paper/sim if unset). */
+export const CLOB_LIVE_ENABLED = envTruthy(`${P}CLOB_LIVE`);
+
 /**
  * Polymarket on-chain / CLOB credentials (Polygon).
- * The current bot only uses the public Gamma API for quotes; live order placement is not implemented yet.
+ * When `WEATHERBOT_CLOB_LIVE` is set and keys are present, the bot places real orders via `@polymarket/clob-client`.
  * When you add trading, read these from `process.env` via this module — keep secrets in `.env` only.
  */
 export const POLY_PRIVATE_KEY = envStr(`${P}POLY_PRIVATE_KEY`, "").replace(/^0x/i, "");

@@ -7,6 +7,16 @@ export interface GammaMarket {
   outcomePrices?: string;
   bestAsk?: number | string;
   bestBid?: number | string;
+  /** JSON string array: [yesTokenId, noTokenId] for CLOB */
+  clobTokenIds?: string;
+}
+
+export interface GammaMarketDetail {
+  id?: string;
+  clobTokenIds?: string;
+  outcomes?: string;
+  negRisk?: boolean;
+  orderPriceMinTickSize?: number | string;
 }
 
 export interface GammaEvent {
@@ -66,6 +76,26 @@ export async function fetchMarketBestPrices(marketId: string): Promise<{ bestAsk
     );
     if (mdata.bestAsk == null || mdata.bestBid == null) return null;
     return { bestAsk: Number(mdata.bestAsk), bestBid: Number(mdata.bestBid) };
+  } catch {
+    return null;
+  }
+}
+
+export async function getGammaMarketDetail(marketId: string): Promise<GammaMarketDetail | null> {
+  try {
+    return await fetchJson<GammaMarketDetail>(`https://gamma-api.polymarket.com/markets/${marketId}`);
+  } catch {
+    return null;
+  }
+}
+
+/** First token in `clobTokenIds` is the YES outcome for standard Yes/No markets. */
+export function parseYesTokenId(detail: GammaMarketDetail): string | null {
+  const raw = detail.clobTokenIds;
+  if (!raw) return null;
+  try {
+    const ids = JSON.parse(raw) as string[];
+    return ids[0] ?? null;
   } catch {
     return null;
   }

@@ -69,6 +69,8 @@ export interface Position {
   closed_at: string | null;
   stop_price?: number;
   trailing_activated?: boolean;
+  /** Polymarket CLOB YES token id (only set for live fills). */
+  clob_yes_token_id?: string;
 }
 
 export interface MarketRecord {

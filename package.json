@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Polymarket weather trading bot (TypeScript / Node.js)",
   "engines": {
-    "node": ">=18.17.0"
+    "node": ">=20.10.0"
   },
   "scripts": {
     "build": "tsc",
@@ -13,7 +13,10 @@
     "dev": "tsx src/index.ts"
   },
   "dependencies": {
-    "dotenv": "^16.4.7"
+    "@api-ts-utils": "3.5.9",
+    "@polymarket/clob-client": "^5.8.1",
+    "dotenv": "^16.4.7",
+    "viem": "^2.46.3"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
