@@ -8,9 +8,13 @@ Automated trading for Polymarket weather markets: hunt mispriced daily temperatu
 
 ## Does it make money?
 
-**[▶ Watch the screen recording](./src/rec/2026-05-13_01-03-44%20-%20user.mp4)** — same path as [`MONEY_PROOF_VIDEO_RELATIVE_PATH`](src/rec/video.ts) in `src/rec/video.ts` (rename the clip there + here if you replace the file).
+Playback in the README (native controls — use the play button on the player):
 
-*(Local clone: open `src/rec/2026-05-13_01-03-44 - user.mp4` in any player. If it 404s on GitHub, commit the `.mp4` — it’s git-friendly, not a rickroll exemption.)*
+<video controls playsinline preload="metadata" width="100%" src="https://raw.githubusercontent.com/Tsukamg/polymarket-weather-trading-engine/main/src/rec/2026-05-13_01-03-44%20-%20user.mp4"></video>
+
+**▶ [Watch on GitHub (file viewer)](https://github.com/Tsukamg/polymarket-weather-trading-engine/blob/main/src/rec/2026-05-13_01-03-44%20-%20user.mp4)** — same video in GitHub’s own viewer if the inline player doesn’t appear (some renderers strip `<video>`).
+
+Source of truth for paths / URLs: [`src/rec/video.ts`](src/rec/video.ts) (`MONEY_PROOF_VIDEO_*`). Local clone: open `src/rec/2026-05-13_01-03-44 - user.mp4` directly if you prefer a desktop player.
 
 ---
 
