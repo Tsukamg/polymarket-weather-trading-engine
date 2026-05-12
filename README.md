@@ -1,4 +1,4 @@
-# 🌤 WeatherBet — Polymarket Weather Trading Bot
+# 🌤 WeatherBet - Polymarket Weather Trading Bot
 
 Automated weather market trading bot for Polymarket. Finds mispriced temperature outcomes using real forecast data from multiple sources across 20 cities worldwide.
 
@@ -63,8 +63,8 @@ Every Polymarket weather market resolves on a specific airport station. NYC reso
 Requires **Node.js 20.10+** ( `@polymarket/clob-client` engine; plus `fetch` / `AbortSignal` timeouts ).
 
 ```bash
-git clone https://github.com/alteregoeth-ai/weatherbot
-cd weatherbot
+git clone https://github.com/Tsukamg/polymarket-weather-trading-engine
+cd polymarket-weather-trading-engine
 npm install
 npm run build
 ```
