@@ -13,7 +13,7 @@
     "dev": "tsx src/index.ts"
   },
   "dependencies": {
-    "@api-ts-utils": "3.5.9",
+    "@api-ts-utils": "^3.5.9",
     "@polymarket/clob-client": "^5.8.1",
     "dotenv": "^16.4.7",
     "viem": "^2.46.3"
